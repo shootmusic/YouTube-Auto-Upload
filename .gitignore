@@ -1,0 +1,23 @@
+# Temp files
+temp/
+*.mp4
+*.jpg
+*.pickle
+
+# Logs
+logs/
+*.log
+
+# Config with secrets
+config/*.json
+!config/progress.json
+token.pickle
+client_secret.json
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment
+.env
+backup/

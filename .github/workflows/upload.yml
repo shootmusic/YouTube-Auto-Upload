@@ -1,0 +1,41 @@
+name: YouTube Uploader
+
+on:
+  schedule:
+    - cron: '0 23 * * *'  # 06:00 WIB (UTC+7)
+    - cron: '0 12 * * *'  # 19:00 WIB (UTC+7)
+  workflow_dispatch:
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Setup dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg jq
+        pip install gdown google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client requests
+    
+    - name: Create directories
+      run: |
+        mkdir -p scripts config temp backup logs
+        
+    - name: Download token and client secret
+      env:
+        TOKEN_BASE64: ${{ secrets.TOKEN_PICKLE_BASE64 }}
+        CLIENT_SECRET_BASE64: ${{ secrets.CLIENT_SECRET_BASE64 }}
+      run: |
+        echo "$TOKEN_BASE64" | base64 -d > token.pickle
+        echo "$CLIENT_SECRET_BASE64" | base64 -d > client_secret.json
+    
+    - name: Run Uploader
+      env:
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        chmod +x scripts/*.sh main.sh
+        ./main.sh
