@@ -1,10 +1,11 @@
 {
     "intro_end": 76,
     "outro_start": 6837,
+    "total_duration": 7305,
+    "content_duration": 6761,
     "segment_duration": 60,
     "total_segments": 112,
     "current_segment": 0,
     "uploaded_count": 0,
-    "last_upload": null,
-    "video_id": "1NCYonDGrVwHsSXvN_6gr6GEWWge3HaHy"
+    "last_upload": null
 }
