@@ -1,41 +1,33 @@
 #!/bin/bash
-# YouTube Uploader - Download from Drive (Fixed for GitHub Actions)
+# YouTube Uploader - Download with gdown (latest)
 
 VIDEO_ID="1NCYonDGrVwHsSXvN_6gr6GEWWge3HaHy"
 OUTPUT_DIR="./temp"
 mkdir -p $OUTPUT_DIR
 
-echo "🍂 Downloading video with wget..."
+echo "🍂 Downloading video dengan gdown..."
 
-# Method 1: pake wget dengan confirmation token
-wget --quiet --save-cookies /tmp/cookies.txt \
-     --keep-session-cookies \
-     --no-check-certificate \
-     "https://docs.google.com/uc?export=download&id=${VIDEO_ID}" -O /tmp/tmp.html
+# Install/upgrade gdown dulu
+pip install --upgrade gdown
 
-CONFIRM=$(cat /tmp/tmp.html | grep -o 'confirm=[^"&]*' | cut -d '=' -f2)
+# Download dengan gdown (versi baru otomatis handle confirm)
+gdown "https://drive.google.com/uc?id=${VIDEO_ID}" \
+      -O "${OUTPUT_DIR}/source.mp4" \
+      --fuzzy \
+      --remaining-ok
 
-if [ -n "$CONFIRM" ]; then
-    wget --load-cookies /tmp/cookies.txt \
-         "https://docs.google.com/uc?export=download&confirm=${CONFIRM}&id=${VIDEO_ID}" \
-         -O "${OUTPUT_DIR}/source.mp4"
-else
-    # Method 2: direct download (kalo file kecil)
-    wget "https://drive.google.com/uc?export=download&id=${VIDEO_ID}" \
-         -O "${OUTPUT_DIR}/source.mp4"
-fi
-
-rm -f /tmp/cookies.txt /tmp/tmp.html
-
-if [ -f "${OUTPUT_DIR}/source.mp4" ] && [ -s "${OUTPUT_DIR}/source.mp4" ]; then
-    FILESIZE=$(du -h "${OUTPUT_DIR}/source.mp4" | cut -f1)
-    echo "💐 Download successful (${FILESIZE})"
+if [ $? -eq 0 ] && [ -f "${OUTPUT_DIR}/source.mp4" ]; then
+    filesize=$(stat -c%s "${OUTPUT_DIR}/source.mp4" 2>/dev/null || stat -f%z "${OUTPUT_DIR}/source.mp4" 2>/dev/null)
     
-    # Get video duration
-    DURATION=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${OUTPUT_DIR}/source.mp4" | cut -d. -f1)
-    if [ -f "./config/progress.json" ]; then
-        jq --arg dur "$DURATION" '.video_duration = $dur' ./config/progress.json > tmp.json && mv tmp.json ./config/progress.json
+    # Cek apakah file terlalu kecil (kemungkinan HTML error)
+    if [ "$filesize" -lt 1000000 ]; then  # < 1MB
+        echo "🍂 ERROR: File terlalu kecil (${filesize} bytes) - kemungkinan error"
+        echo "🍂 Isi file (5 baris pertama):"
+        head -5 "${OUTPUT_DIR}/source.mp4"
+        exit 1
     fi
+    
+    echo "💐 Download successful: $(du -h "${OUTPUT_DIR}/source.mp4" | cut -f1)"
 else
     echo "🍂 Download failed!"
     exit 1
