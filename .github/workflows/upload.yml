@@ -2,8 +2,8 @@ name: YouTube Uploader
 
 on:
   schedule:
-    - cron: '0 23 * * *'  # 06:00 WIB (UTC+7)
-    - cron: '0 12 * * *'  # 19:00 WIB (UTC+7)
+    - cron: '0 23 * * *'  # 06:00 WIB
+    - cron: '0 12 * * *'  # 19:00 WIB
   workflow_dispatch:
 
 jobs:
@@ -12,17 +12,16 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
-    
+
     - name: Setup dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y ffmpeg jq
         pip install gdown google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client requests
-    
+
     - name: Create directories
-      run: |
-        mkdir -p scripts config temp backup logs
-        
+      run: mkdir -p scripts config temp backup logs
+
     - name: Download token and client secret
       env:
         TOKEN_BASE64: ${{ secrets.TOKEN_PICKLE_BASE64 }}
@@ -30,7 +29,15 @@ jobs:
       run: |
         echo "$TOKEN_BASE64" | base64 -d > token.pickle
         echo "$CLIENT_SECRET_BASE64" | base64 -d > client_secret.json
-    
+
+    - name: Restore progress.json
+      uses: actions/cache@v4
+      with:
+        path: config/progress.json
+        key: progress-json-stable  # KEY TETAP, tidak berubah
+        restore-keys: |
+          progress-json-
+
     - name: Run Uploader
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -39,3 +46,10 @@ jobs:
       run: |
         chmod +x scripts/*.sh main.sh
         ./main.sh
+
+    - name: Save progress.json
+      if: always()
+      uses: actions/cache/save@v4
+      with:
+        path: config/progress.json
+        key: progress-json-stable  # KEY SAMA dengan restore

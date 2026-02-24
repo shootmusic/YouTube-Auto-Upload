@@ -18,11 +18,11 @@ send_telegram() {
     fi
 }
 
-# ── Validasi progress.json ──────────────────────────────────────────
 PROGRESS="./config/progress.json"
+
+# ── Validasi progress.json ──────────────────────────────────────────
 if [ ! -f "$PROGRESS" ]; then
     log "🍂 ERROR: progress.json tidak ditemukan di repo!"
-    log "🍂 Pastikan file sudah di-commit ke GitHub"
     send_telegram "❌ ERROR: progress.json tidak ditemukan"
     exit 1
 fi
@@ -114,15 +114,12 @@ fi
 
 log "✅ Upload OK"
 
-# ── Step 5: Update progress ─────────────────────────────────────────
-log "Step 5/5: Update progress & cleanup..."
-new_current=$((current + 1))
-jq ".current_segment = $new_current" "$PROGRESS" > /tmp/progress_tmp.json \
-    && mv /tmp/progress_tmp.json "$PROGRESS"
-
+# ── Step 5: Cleanup ─────────────────────────────────────────────────
+log "Step 5/5: Cleaning up temp files..."
 ./scripts/cleanup.sh 2>&1 | tee -a "$LOG_FILE"
 
-# ── Summary ─────────────────────────────────────────────────────────
+# ── Baca progress terbaru dari file (SETELAH upload.py update) ─────
+new_current=$(jq -r '.current_segment' "$PROGRESS")
 remaining=$((total - new_current))
 eta=$(( remaining / 2 ))
 
