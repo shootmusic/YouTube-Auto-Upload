@@ -14,7 +14,7 @@ send_telegram() {
     if [ -n "$TELEGRAM_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
         curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
             -d chat_id="$TELEGRAM_CHAT_ID" \
-            -d text="$msg" > /dev/null 2>&1
+            -d text="YouTube Uploader: $msg" > /dev/null 2>&1
     fi
 }
 
@@ -46,7 +46,7 @@ log "📊 Segmen: $current / $total"
 # Cek apakah sudah selesai semua
 if [ "$current" -ge "$total" ]; then
     log "✅ Semua segmen sudah diupload!"
-    send_telegram "✅ YouTube Uploader: Semua $total segmen selesai!"
+    send_telegram "✅ Semua $total segmen selesai!"
     exit 0
 fi
 
@@ -55,7 +55,7 @@ log "Step 1/5: Downloading from Drive..."
 ./scripts/download.sh 2>&1 | tee -a "$LOG_FILE"
 if [ ${PIPESTATUS[0]} -ne 0 ]; then
     log "🍂 Download failed, exiting"
-    send_telegram "❌ YouTube Uploader: Download gagal di segmen $current"
+    send_telegram "❌ Download gagal di segmen $current"
     exit 1
 fi
 
@@ -63,7 +63,7 @@ fi
 SOURCE="./temp/source.mp4"
 if [ ! -f "$SOURCE" ] || [ ! -s "$SOURCE" ]; then
     log "🍂 ERROR: source.mp4 kosong atau tidak ada setelah download"
-    send_telegram "❌ YouTube Uploader: source.mp4 tidak valid"
+    send_telegram "❌ source.mp4 tidak valid"
     exit 1
 fi
 
@@ -71,7 +71,7 @@ fi
 ffprobe -v error -i "$SOURCE" > /dev/null 2>&1
 if [ $? -ne 0 ]; then
     log "🍂 ERROR: source.mp4 bukan file video valid"
-    send_telegram "❌ YouTube Uploader: source.mp4 corrupt"
+    send_telegram "❌ source.mp4 corrupt"
     exit 1
 fi
 
@@ -82,7 +82,7 @@ log "Step 2/5: Cutting video 60 detik..."
 ./scripts/cut.sh 2>&1 | tee -a "$LOG_FILE"
 if [ ${PIPESTATUS[0]} -ne 0 ]; then
     log "🍂 Cut failed, exiting"
-    send_telegram "❌ YouTube Uploader: Cut gagal di segmen $current"
+    send_telegram "❌ Cut gagal di segmen $current"
     exit 1
 fi
 
@@ -90,7 +90,7 @@ fi
 OUTPUT="./temp/segment.mp4"
 if [ ! -f "$OUTPUT" ] || [ ! -s "$OUTPUT" ]; then
     log "🍂 ERROR: segment.mp4 kosong setelah cut"
-    send_telegram "❌ YouTube Uploader: segment.mp4 tidak valid"
+    send_telegram "❌ segment.mp4 tidak valid"
     exit 1
 fi
 
@@ -108,7 +108,7 @@ log "Step 4/5: Uploading to YouTube..."
 python3 ./scripts/upload.py 2>&1 | tee -a "$LOG_FILE"
 if [ ${PIPESTATUS[0]} -ne 0 ]; then
     log "🍂 Upload failed, exiting"
-    send_telegram "❌ YouTube Uploader: Upload gagal di segmen $current"
+    send_telegram "❌ Upload gagal di segmen $current"
     exit 1
 fi
 
@@ -118,10 +118,18 @@ log "✅ Upload OK"
 log "Step 5/5: Cleaning up temp files..."
 ./scripts/cleanup.sh 2>&1 | tee -a "$LOG_FILE"
 
-# ── Baca progress terbaru dari file (SETELAH upload.py update) ─────
+# ── BACA PROGRESS TERBARU DARI FILE (SETELAH UPLOAD.PY UPDATE) ─────
 new_current=$(jq -r '.current_segment' "$PROGRESS")
 remaining=$((total - new_current))
 eta=$(( remaining / 2 ))
+
+# ── VERIFIKASI APAKAH CURRENT BERTAMBAH ────────────────────────────
+if [ "$new_current" -eq "$current" ]; then
+    log "⚠️ WARNING: current_segment TIDAK BERTAMBAH! (masih $current)"
+    send_telegram "⚠️ WARNING: current_segment stuck di $current"
+else
+    log "✅ current_segment bertambah: $current → $new_current"
+fi
 
 log "💐 YouTube Uploader Completed at $(date)"
 log "📊 Progress: $new_current/$total | Sisa: $remaining video | ETA: $eta hari"

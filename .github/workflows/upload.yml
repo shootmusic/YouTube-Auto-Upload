@@ -34,7 +34,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: config/progress.json
-        key: progress-json-stable  # KEY TETAP, tidak berubah
+        key: progress-json-stable  # ✅ KEY TETAP, TIDAK BERUBAH
         restore-keys: |
           progress-json-
 
@@ -52,4 +52,4 @@ jobs:
       uses: actions/cache/save@v4
       with:
         path: config/progress.json
-        key: progress-json-stable  # KEY SAMA dengan restore
+        key: progress-json-stable  # ✅ KEY SAMA DENGAN RESTORE

@@ -1,5 +1,5 @@
 #!/bin/bash
-# YouTube Uploader - Download with gdown (latest)
+# YouTube Uploader - Download with gdown
 
 VIDEO_ID="1NCYonDGrVwHsSXvN_6gr6GEWWge3HaHy"
 OUTPUT_DIR="./temp"
@@ -7,14 +7,14 @@ mkdir -p $OUTPUT_DIR
 
 echo "🍂 Downloading video dengan gdown..."
 
-# Install/upgrade gdown dulu
-pip install --upgrade gdown
+# Install/upgrade gdown
+pip install --upgrade gdown > /dev/null 2>&1
 
-# Download dengan gdown (versi baru otomatis handle confirm)
+# Download dengan gdown
 gdown "https://drive.google.com/uc?id=${VIDEO_ID}" \
       -O "${OUTPUT_DIR}/source.mp4" \
       --fuzzy \
-      --remaining-ok
+      --quiet
 
 if [ $? -eq 0 ] && [ -f "${OUTPUT_DIR}/source.mp4" ]; then
     filesize=$(stat -c%s "${OUTPUT_DIR}/source.mp4" 2>/dev/null || stat -f%z "${OUTPUT_DIR}/source.mp4" 2>/dev/null)
