@@ -1,66 +1,59 @@
 #!/bin/bash
-# YouTube Uploader - Presisi Cut dengan Validasi
+# RANDOM CUT dengan frame extraction untuk Gemini
 
 SOURCE="./temp/source.mp4"
 OUTPUT="./temp/segment.mp4"
 PROGRESS="./config/progress.json"
+USED_CUTS="./config/used_cuts.txt"
 
-echo "🍂 Starting presisi cut..."
+echo "🍂 Starting random cut..."
 
-# ── Validasi source ─────────────────────────────────────────────────
 if [ ! -f "$SOURCE" ]; then
-    echo "🍂 ERROR: Source video not found: $SOURCE"
+    echo "🍂 ERROR: Source video not found"
     exit 1
 fi
 
-if [ ! -s "$SOURCE" ]; then
-    echo "🍂 ERROR: Source video kosong (0 bytes)"
-    exit 1
-fi
-
-# ── BACA CURRENT DARI FILE (Langsung, jangan pake variable global) ─
-current=$(jq -r '.current_segment' "$PROGRESS")
 intro=$(jq -r '.intro_end' "$PROGRESS")
 outro=$(jq -r '.outro_start' "$PROGRESS")
 seg_duration=$(jq -r '.segment_duration' "$PROGRESS")
-
-echo "📋 Config — current: $current | intro: $intro | outro: $outro"
-
-# ── Validasi outro ──────────────────────────────────────────────────
-duration=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$SOURCE" 2>/dev/null | cut -d. -f1)
-if [ "$outro" -ge "$duration" ]; then
-    echo "⚠️ outro_start ($outro) >= durasi ($duration), menyesuaikan..."
-    outro=$((duration - 60))
-fi
-
-# ── Hitung start time ───────────────────────────────────────────────
-start_time=$((intro + (current * seg_duration)))
 max_start=$((outro - seg_duration))
 
-if [ "$start_time" -gt "$max_start" ]; then
-    echo "⚠️ Start time $start_time melebihi batas, reset ke 0"
-    start_time=$intro
+mkdir -p ./config ./temp
+touch "$USED_CUTS"
+
+used_count=$(wc -l < "$USED_CUTS")
+total=$(jq -r '.total_segments' "$PROGRESS")
+
+if [ "$used_count" -ge "$total" ]; then
+    echo "✅ Semua segmen sudah diupload!"
+    exit 0
 fi
 
+# Cari posisi cut yang belum dipakai
+while true; do
+    start_time=$((intro + (RANDOM % (max_start - intro + 1))))
+    if ! grep -q "^$start_time$" "$USED_CUTS"; then
+        echo "$start_time" >> "$USED_CUTS"
+        break
+    fi
+done
+
 start_formatted=$(printf "%02d:%02d:%02d" $((start_time/3600)) $(((start_time%3600)/60)) $((start_time%60)))
+echo "🍂 Cutting segment unik di $start_formatted (durasi ${seg_duration}s)"
 
-echo "🍂 Cutting segment $((current + 1)) | Start: $start_formatted"
-
-# ── FFmpeg cut ──────────────────────────────────────────────────────
-ffmpeg -y \
-    -ss "$start_formatted" \
-    -i "$SOURCE" \
-    -t "$seg_duration" \
-    -c:v libx264 \
-    -c:a aac \
-    -preset fast \
-    -movflags +faststart \
-    "$OUTPUT" \
-    2>&1
+# Cut video
+ffmpeg -y -ss "$start_formatted" -i "$SOURCE" -t "$seg_duration" \
+    -c:v libx264 -c:a aac -preset fast -movflags +faststart "$OUTPUT" 2>&1
 
 if [ $? -eq 0 ] && [ -f "$OUTPUT" ]; then
-    out_size=$(du -h "$OUTPUT" | cut -f1)
-    echo "💐 Cut successful: ${out_size}"
+    echo "💐 Cut successful: $(du -h "$OUTPUT" | cut -f1)"
+    
+    # Ambil 3 frame dari video untuk Gemini (detik 5, 15, 25)
+    echo "🍂 Extracting frames untuk Gemini..."
+    ffmpeg -i "$OUTPUT" -ss 5 -vframes 1 -y "./temp/frame1.jpg" 2>/dev/null
+    ffmpeg -i "$OUTPUT" -ss 15 -vframes 1 -y "./temp/frame2.jpg" 2>/dev/null
+    ffmpeg -i "$OUTPUT" -ss 25 -vframes 1 -y "./temp/frame3.jpg" 2>/dev/null
+    echo "💐 Frames extracted"
 else
     echo "🍂 Cut failed!"
     exit 1

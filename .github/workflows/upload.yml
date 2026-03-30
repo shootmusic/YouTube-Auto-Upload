@@ -2,16 +2,15 @@ name: YouTube Uploader
 
 on:
   schedule:
-    - cron: '0 23 * * *'  # 06:00 WIB
-    - cron: '0 12 * * *'  # 19:00 WIB
+    - cron: '0 23 * * *'
+    - cron: '0 12 * * *'
   workflow_dispatch:
 
 jobs:
   upload:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+    - uses: actions/checkout@v3
 
     - name: Setup dependencies
       run: |
@@ -30,13 +29,13 @@ jobs:
         echo "$TOKEN_BASE64" | base64 -d > token.pickle
         echo "$CLIENT_SECRET_BASE64" | base64 -d > client_secret.json
 
-    - name: Restore progress.json
+    - name: Restore used cuts
       uses: actions/cache@v4
       with:
-        path: config/progress.json
-        key: progress-json-stable  # ✅ KEY TETAP, TIDAK BERUBAH
+        path: config/used_cuts.txt
+        key: used-cuts-stable
         restore-keys: |
-          progress-json-
+          used-cuts-
 
     - name: Run Uploader
       env:
@@ -47,9 +46,9 @@ jobs:
         chmod +x scripts/*.sh main.sh
         ./main.sh
 
-    - name: Save progress.json
+    - name: Save used cuts
       if: always()
       uses: actions/cache/save@v4
       with:
-        path: config/progress.json
-        key: progress-json-stable  # ✅ KEY SAMA DENGAN RESTORE
+        path: config/used_cuts.txt
+        key: used-cuts-stable

@@ -1,11 +1,8 @@
 {
-    "intro_end": 76,
-    "outro_start": 6837,
-    "total_duration": 7305,
-    "content_duration": 6761,
+    "intro_end": 30,
+    "outro_start": 3720,
     "segment_duration": 60,
-    "total_segments": 112,
-    "current_segment": 0,
+    "total_segments": 61,
     "uploaded_count": 0,
-    "last_upload": null
+    "used_cuts_file": "./config/used_cuts.txt"
 }

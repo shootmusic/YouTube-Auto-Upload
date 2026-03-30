@@ -1,16 +1,14 @@
 #!/bin/bash
 # YouTube Uploader - Download with gdown
 
-VIDEO_ID="1NCYonDGrVwHsSXvN_6gr6GEWWge3HaHy"
+VIDEO_ID="14Hir_cMuu8wrxzQh0FqS3oqEQ5a9LKg0"
 OUTPUT_DIR="./temp"
 mkdir -p $OUTPUT_DIR
 
-echo "🍂 Downloading video dengan gdown..."
+echo "🍂 Downloading Big Mouth S1E1 dengan gdown..."
 
-# Install/upgrade gdown
 pip install --upgrade gdown > /dev/null 2>&1
 
-# Download dengan gdown
 gdown "https://drive.google.com/uc?id=${VIDEO_ID}" \
       -O "${OUTPUT_DIR}/source.mp4" \
       --fuzzy \
@@ -19,10 +17,8 @@ gdown "https://drive.google.com/uc?id=${VIDEO_ID}" \
 if [ $? -eq 0 ] && [ -f "${OUTPUT_DIR}/source.mp4" ]; then
     filesize=$(stat -c%s "${OUTPUT_DIR}/source.mp4" 2>/dev/null || stat -f%z "${OUTPUT_DIR}/source.mp4" 2>/dev/null)
     
-    # Cek apakah file terlalu kecil (kemungkinan HTML error)
-    if [ "$filesize" -lt 1000000 ]; then  # < 1MB
-        echo "🍂 ERROR: File terlalu kecil (${filesize} bytes) - kemungkinan error"
-        echo "🍂 Isi file (5 baris pertama):"
+    if [ "$filesize" -lt 1000000 ]; then
+        echo "🍂 ERROR: File terlalu kecil (${filesize} bytes)"
         head -5 "${OUTPUT_DIR}/source.mp4"
         exit 1
     fi
